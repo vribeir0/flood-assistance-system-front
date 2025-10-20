@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     width: "50%",
     borderRadius: 12,
-    backgroundColor: "#fff",
+    backgroundColor: "white",
     overflow: "hidden",
   },
   title: {
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-end",
   },
   systemMessage: {
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "lightgray",
     alignSelf: "flex-start",
   },
   messageText: {
@@ -175,13 +175,13 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     borderTopWidth: 1,
-    borderTopColor: "#ddd",
+    borderTopColor: "lightgray",
     paddingTop: 10,
   },
   textInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "lightgray",
     borderRadius: 20,
     padding: 10,
     marginRight: 10,
