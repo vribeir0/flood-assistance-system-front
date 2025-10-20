@@ -1,5 +1,5 @@
 import { Text, View } from "@/components/Themed";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -7,13 +7,21 @@ import {
   TouchableOpacity,
 } from "react-native";
 
+import { chatService } from "@/services/chatService";
 import { Message } from "@/types/chat";
 
 export default function ChatScreen() {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamResponse, setStreamResponse] = useState("");
+  const scrollViewRef = useRef<ScrollView>(null);
 
-  const handleSendMessage = () => {
+  useEffect(() => {
+    scrollViewRef.current?.scrollToEnd({ animated: true });
+  }, [messages, streamResponse]);
+
+  const handleSendMessage = async () => {
     if (message.trim()) {
       const userMessage: Message = {
         text: message,
@@ -23,7 +31,43 @@ export default function ChatScreen() {
 
       setMessages((prevMessages) => [...prevMessages, userMessage]);
       setMessage("");
+      await streamChatResponse(userMessage);
     }
+  };
+
+  const streamChatResponse = async (message: Message) => {
+    setStreamResponse("");
+    let fullResponse = "";
+
+    const eventSource = chatService.streamMessage(message.text);
+    setIsStreaming(true);
+
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+
+      if (data.type === "done") {
+        setIsStreaming(false);
+        eventSource.close();
+        debugger;
+        const systemMessage: Message = {
+          text: fullResponse,
+          source: "system",
+          timestamp: Date.now(),
+        };
+
+        setMessages((prevMessages) => [...prevMessages, systemMessage]);
+        setStreamResponse("");
+        return;
+      }
+
+      fullResponse += data.reply;
+      setStreamResponse(fullResponse);
+    };
+    eventSource.onerror = (error) => {
+      console.error("Streaming error:", error);
+      eventSource.close();
+      setIsStreaming(false);
+    };
   };
 
   return (
@@ -32,8 +76,12 @@ export default function ChatScreen() {
         <Text style={styles.title}>ChatT</Text>
 
         <ScrollView
+          ref={scrollViewRef}
           style={styles.messagesContainer}
           contentContainerStyle={styles.messagesList}
+          onContentSizeChange={() =>
+            scrollViewRef.current?.scrollToEnd({ animated: true })
+          }
         >
           {messages.map((msg, idx) => (
             <View
@@ -48,6 +96,12 @@ export default function ChatScreen() {
               <Text style={styles.messageText}>{msg.text}</Text>
             </View>
           ))}
+
+          {isStreaming && streamResponse && (
+            <View style={[styles.messageBox, styles.systemMessage]}>
+              <Text style={styles.messageText}>{streamResponse}</Text>
+            </View>
+          )}
         </ScrollView>
 
         <View style={styles.inputContainer}>
@@ -56,14 +110,17 @@ export default function ChatScreen() {
             value={message}
             onChangeText={setMessage}
             onSubmitEditing={handleSendMessage}
+            editable={!isStreaming}
+            multiline={true}
             autoFocus={true}
             returnKeyType="send"
             placeholder="Digite sua mensagem..."
-            placeholderTextColor="#999"
+            placeholderTextColor="gray"
           />
           <TouchableOpacity
             style={styles.sendButton}
             onPress={handleSendMessage}
+            disabled={isStreaming}
           >
             <Text style={styles.sendButtonText}>Enviar</Text>
           </TouchableOpacity>
@@ -107,19 +164,16 @@ const styles = StyleSheet.create({
   userMessage: {
     backgroundColor: "#DCF8C6",
     alignSelf: "flex-end",
-    borderBottomRightRadius: 0,
   },
   systemMessage: {
     backgroundColor: "#f5f5f5",
     alignSelf: "flex-start",
-    borderBottomLeftRadius: 0,
   },
   messageText: {
     fontSize: 16,
   },
   inputContainer: {
     flexDirection: "row",
-    marginTop: 10,
     borderTopWidth: 1,
     borderTopColor: "#ddd",
     paddingTop: 10,
