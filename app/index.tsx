@@ -1,131 +1,78 @@
 import { Text, View } from "@/components/Themed";
-import { useEffect, useRef, useState } from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-} from "react-native";
+import { useRouter } from "expo-router";
+import { ScrollView, StyleSheet, TouchableOpacity } from "react-native";
 
-import { chatService } from "@/services/chatService";
-import { Message } from "@/types/chat";
-
-export default function ChatScreen() {
-  const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [streamResponse, setStreamResponse] = useState("");
-  const scrollViewRef = useRef<ScrollView>(null);
-
-  useEffect(() => {
-    scrollViewRef.current?.scrollToEnd({ animated: true });
-  }, [messages, streamResponse]);
-
-  const handleSendMessage = async () => {
-    if (message.trim()) {
-      const userMessage: Message = {
-        text: message,
-        source: "user",
-        timestamp: Date.now(),
-      };
-
-      setMessages((prevMessages) => [...prevMessages, userMessage]);
-      setMessage("");
-      await streamChatResponse(userMessage);
-    }
-  };
-
-  const streamChatResponse = async (message: Message) => {
-    setStreamResponse("");
-    let fullResponse = "";
-
-    const eventSource = chatService.streamMessage(message.text);
-    setIsStreaming(true);
-
-    eventSource.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-
-      if (data.type === "done") {
-        setIsStreaming(false);
-        eventSource.close();
-        debugger;
-        const systemMessage: Message = {
-          text: fullResponse,
-          source: "system",
-          timestamp: Date.now(),
-        };
-
-        setMessages((prevMessages) => [...prevMessages, systemMessage]);
-        setStreamResponse("");
-        return;
-      }
-
-      fullResponse += data.reply;
-      setStreamResponse(fullResponse);
-    };
-    eventSource.onerror = (error) => {
-      console.error("Streaming error:", error);
-      eventSource.close();
-      setIsStreaming(false);
-    };
-  };
+export default function HomeScreen() {
+  const router = useRouter();
 
   return (
     <View style={styles.container}>
-      <View style={styles.chatWrapper}>
-        <Text style={styles.title}>ChatT</Text>
-
-        <ScrollView
-          ref={scrollViewRef}
-          style={styles.messagesContainer}
-          contentContainerStyle={styles.messagesList}
-          onContentSizeChange={() =>
-            scrollViewRef.current?.scrollToEnd({ animated: true })
-          }
-        >
-          {messages.map((msg, idx) => (
-            <View
-              key={idx}
-              style={[
-                styles.messageBox,
-                msg.source === "user"
-                  ? styles.userMessage
-                  : styles.systemMessage,
-              ]}
-            >
-              <Text style={styles.messageText}>{msg.text}</Text>
-            </View>
-          ))}
-
-          {isStreaming && streamResponse && (
-            <View style={[styles.messageBox, styles.systemMessage]}>
-              <Text style={styles.messageText}>{streamResponse}</Text>
-            </View>
-          )}
-        </ScrollView>
-
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.textInput}
-            value={message}
-            onChangeText={setMessage}
-            onSubmitEditing={handleSendMessage}
-            editable={!isStreaming}
-            multiline={true}
-            autoFocus={true}
-            returnKeyType="send"
-            placeholder="Digite sua mensagem..."
-            placeholderTextColor="gray"
-          />
-          <TouchableOpacity
-            style={styles.sendButton}
-            onPress={handleSendMessage}
-            disabled={isStreaming}
-          >
-            <Text style={styles.sendButtonText}>Enviar</Text>
-          </TouchableOpacity>
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.header}>
+          <Text style={styles.title}>
+            Sistema de Assistência contra Enchentes
+          </Text>
+          <Text style={styles.subtitle}>
+            Chatbot Inteligente para Orientação em Eventos Hidrometeorológicos
+          </Text>
         </View>
-      </View>
+
+        <View style={styles.descriptionContainer}>
+          <Text style={styles.sectionTitle}>Sobre o Sistema</Text>
+          <Text style={styles.description}>
+            Chatbot desenvolvido para orientar usuários localizados em áreas de
+            risco durante eventos hidrometeorológicos extremos, como enchentes.
+          </Text>
+
+          <View style={styles.featuresContainer}>
+            <View style={styles.feature}>
+              <View style={styles.featureText}>
+                <Text style={styles.featureTitle}>Identificação de Riscos</Text>
+                <Text style={styles.featureDescription}>
+                  Interpreta situações relatadas e fornece recomendações
+                  preventivas.
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.feature}>
+              <View style={styles.featureText}>
+                <Text style={styles.featureTitle}>Integração de Dados</Text>
+                <Text style={styles.featureDescription}>
+                  Consome dados de APIs metereológicas em tempo real.
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.feature}>
+              <View style={styles.featureText}>
+                <Text style={styles.featureTitle}>Agentes MCP</Text>
+                <Text style={styles.featureDescription}>
+                  Utiliza arquitetura de agentes baseados em LLM para análise de
+                  risco e formulação de respostas.
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={styles.startButton}
+          onPress={() => router.push("/chat")}
+        >
+          <Text style={styles.startButtonText}>Iniciar Chat</Text>
+        </TouchableOpacity>
+
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            Sistema desenvolvido como parte do Trabalho de Conclusão de Curso
+          </Text>
+          <Text style={styles.footerText}>
+            Vinicius Santos Ribeiro - UTFPR - Universidade Tecnológica Federal
+            do Paraná
+          </Text>
+        </View>
+      </ScrollView>
     </View>
   );
 }
@@ -133,69 +80,97 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#f5f5f5",
   },
-  chatWrapper: {
-    flex: 1,
-    alignSelf: "center",
-    width: "50%",
-    borderRadius: 12,
-    backgroundColor: "white",
-    overflow: "hidden",
+  content: {
+    flexGrow: 1,
+    alignItems: "center",
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+  },
+  header: {
+    alignItems: "center",
+    marginBottom: 40,
   },
   title: {
+    fontSize: 32,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 10,
+    color: "#1976D2",
+  },
+  subtitle: {
+    fontSize: 18,
+    textAlign: "center",
+    color: "#666",
+    maxWidth: 600,
+  },
+  descriptionContainer: {
+    backgroundColor: "white",
+    borderRadius: 12,
+    padding: 30,
+    maxWidth: 800,
+    width: "100%",
+    marginBottom: 30,
+    boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.1)",
+  },
+  sectionTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 20,
-    textAlign: "center",
+    marginBottom: 15,
+    color: "#333",
   },
-  messagesContainer: {
-    flex: 1,
-    width: "100%",
-  },
-  messagesList: {
-    paddingBottom: 10,
-  },
-  messageBox: {
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 10,
-    maxWidth: "80%",
-  },
-  userMessage: {
-    backgroundColor: "#DCF8C6",
-    alignSelf: "flex-end",
-  },
-  systemMessage: {
-    backgroundColor: "lightgray",
-    alignSelf: "flex-start",
-  },
-  messageText: {
+  description: {
     fontSize: 16,
+    lineHeight: 24,
+    color: "#555",
+    marginBottom: 30,
   },
-  inputContainer: {
+  featuresContainer: {
+    gap: 20,
+  },
+  feature: {
     flexDirection: "row",
-    borderTopWidth: 1,
-    borderTopColor: "lightgray",
-    paddingTop: 10,
+    alignItems: "flex-start",
+    gap: 15,
   },
-  textInput: {
+  featureIcon: {
+    fontSize: 32,
+  },
+  featureText: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: "lightgray",
-    borderRadius: 20,
-    padding: 10,
-    marginRight: 10,
-    fontSize: 16,
   },
-  sendButton: {
-    backgroundColor: "#2196F3",
-    borderRadius: 20,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    justifyContent: "center",
-  },
-  sendButtonText: {
-    color: "white",
+  featureTitle: {
+    fontSize: 18,
     fontWeight: "bold",
+    marginBottom: 5,
+    color: "#333",
+  },
+  featureDescription: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#666",
+  },
+  startButton: {
+    backgroundColor: "#1976D2",
+    paddingVertical: 15,
+    paddingHorizontal: 60,
+    borderRadius: 30,
+    marginBottom: 40,
+    boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.2)",
+  },
+  startButtonText: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  footer: {
+    alignItems: "center",
+    gap: 5,
+  },
+  footerText: {
+    fontSize: 12,
+    color: "#999",
+    textAlign: "center",
   },
 });

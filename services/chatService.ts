@@ -1,5 +1,6 @@
 import { ChatResponse } from "@/types/chat";
-import { api, createEventSource } from "./api";
+import { Socket } from "socket.io-client";
+import { api, createSocket } from "./api";
 
 export const chatService = {
   sendMessage: async (message: string): Promise<ChatResponse> => {
@@ -12,8 +13,8 @@ export const chatService = {
       throw new Error("Erro ao enviar mensagem para o backend");
     }
   },
-  streamMessage: (message: string): EventSource => {
-    const encodedMessage = encodeURIComponent(message);
-    return createEventSource(encodedMessage);
+
+  createWebSocket: (): Socket => {
+    return createSocket();
   },
 };
